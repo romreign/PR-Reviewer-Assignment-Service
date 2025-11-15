@@ -1,0 +1,3 @@
+.PHONY: build
+.PHONY: test
+

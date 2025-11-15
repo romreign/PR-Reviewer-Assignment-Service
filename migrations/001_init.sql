@@ -1,0 +1,29 @@
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true
+);
+
+CREATE TABLE IF NOT EXISTS teams (
+  id SERIAL PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS team_users (
+  team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY(team_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS pull_requests (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  author_id TEXT NOT NULL REFERENCES users(id),
+  status TEXT NOT NULL CHECK (status IN ('OPEN','MERGED')) DEFAULT 'OPEN'
+);
+
+CREATE TABLE IF NOT EXISTS pr_reviewers (
+  pr_id TEXT NOT NULL REFERENCES pull_requests(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  PRIMARY KEY(pr_id, user_id)
+);
