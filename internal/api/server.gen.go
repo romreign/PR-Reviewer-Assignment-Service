@@ -31,9 +31,15 @@ type ServerInterface interface {
 	// ╨Я╨╛╨╗╤Г╤З╨╕╤В╤М PR'╤Л, ╨│╨┤╨╡ ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╤М ╨╜╨░╨╖╨╜╨░╤З╨╡╨╜ ╤А╨╡╨▓╤М╤О╨▓╨╡╤А╨╛╨╝
 	// (GET /users/getReview)
 	GetUsersGetReview(w http.ResponseWriter, r *http.Request, params GetUsersGetReviewParams)
-	// ╨г╤Б╤В╨░╨╜╨╛╨▓╨╕╤В╤М ╤Д╨╗╨░╨│ ╨░╨║╤В╨╕╨▓╨╜╨╛╤Б╤В╨╕ ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╤П
+	// Установить флаг активности пользователя
 	// (POST /users/setIsActive)
 	PostUsersSetIsActive(w http.ResponseWriter, r *http.Request)
+	// Получить статистику назначений
+	// (GET /stats)
+	GetStats(w http.ResponseWriter, r *http.Request)
+	// Массовая деактивация пользователей команды с переназначением PR
+	// (POST /users/deactivateBatch)
+	PostUsersDeactivateBatch(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -79,6 +85,16 @@ func (_ Unimplemented) GetUsersGetReview(w http.ResponseWriter, r *http.Request,
 // ╨г╤Б╤В╨░╨╜╨╛╨▓╨╕╤В╤М ╤Д╨╗╨░╨│ ╨░╨║╤В╨╕╨▓╨╜╨╛╤Б╤В╨╕ ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╤П
 // (POST /users/setIsActive)
 func (_ Unimplemented) PostUsersSetIsActive(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /stats)
+func (_ Unimplemented) GetStats(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /users/deactivateBatch)
+func (_ Unimplemented) PostUsersDeactivateBatch(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -152,10 +168,7 @@ func (siw *ServerInterfaceWrapper) GetTeamGet(w http.ResponseWriter, r *http.Req
 
 	var err error
 
-	// Parameter object where we will unmarshal all parameters from the context
 	var params GetTeamGetParams
-
-	// ------------- Required query parameter "team_name" -------------
 
 	if paramValue := r.URL.Query().Get("team_name"); paramValue != "" {
 
@@ -186,10 +199,7 @@ func (siw *ServerInterfaceWrapper) GetUsersGetReview(w http.ResponseWriter, r *h
 
 	var err error
 
-	// Parameter object where we will unmarshal all parameters from the context
 	var params GetUsersGetReviewParams
-
-	// ------------- Required query parameter "user_id" -------------
 
 	if paramValue := r.URL.Query().Get("user_id"); paramValue != "" {
 
@@ -220,6 +230,32 @@ func (siw *ServerInterfaceWrapper) PostUsersSetIsActive(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostUsersSetIsActive(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+func (siw *ServerInterfaceWrapper) GetStats(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStats(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+func (siw *ServerInterfaceWrapper) PostUsersDeactivateBatch(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostUsersDeactivateBatch(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -362,6 +398,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/users/setIsActive", wrapper.PostUsersSetIsActive)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/stats", wrapper.GetStats)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/users/deactivateBatch", wrapper.PostUsersDeactivateBatch)
 	})
 
 	return r

@@ -1,6 +1,6 @@
 server:
   port: ":8080"
-env: "local"
+  env: "local"
 database:
   host: "localhost"
   port: "5432"

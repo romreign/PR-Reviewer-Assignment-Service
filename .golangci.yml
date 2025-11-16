@@ -1,0 +1,62 @@
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+  build-tags: []
+  concurrency: 4
+  modules-download-mode: readonly
+  go: "1.24"
+
+issues:
+  exclude-dirs:
+    - vendor
+    - .git
+    - .github
+    - testdata
+  exclude-files:
+    - ".*_test.go$"
+  uniq-by-line: false
+
+linters:
+  enable:
+    - errcheck
+    - errname
+    - errorlint
+    - godot
+    - gofmt
+    - goimports
+    - gosimple
+    - ineffassign
+    - typecheck
+    - unconvert
+    - unused
+    - revive
+    - nolintlint
+    - maintidx
+    - misspell
+    - govet
+    - noctx
+
+  disable:
+    - lll
+    - gocyclo
+    - gocognit
+    - stylecheck
+    - prealloc
+    - gosec
+    - staticcheck
+
+linters-settings:
+  errcheck:
+    exclude-functions: fmt:.*,io:.*
+  revive:
+    min-confidence: 0.8
+  gosimple:
+
+output:
+  formats:
+    - colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-source: false
+  sort-results: true

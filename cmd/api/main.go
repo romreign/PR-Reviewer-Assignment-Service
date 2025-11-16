@@ -15,8 +15,24 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
-	var teamRepository repository.TeamRepository = postgres.NewTeamRepository(postgres.Open(cfg))
+
+	db, err := postgres.Open(cfg)
+	if err != nil {
+		log.Fatalf("Error connecting to database: %v", err)
+	}
+	defer postgres.Close(db)
+
+	var teamRepository repository.TeamRepository = postgres.NewTeamRepository(db)
+	var userRepository repository.UserRepository = postgres.NewUserRepository(db)
+	var prRepository repository.PullRequestRepository = postgres.NewPullRequestRepository(db)
+
 	teamService := service.NewTeamService(teamRepository)
-	srv := http.New(cfg, teamService)
-	srv.Run()
+	userService := service.NewUserService(userRepository)
+	prService := service.NewPullRequestService(prRepository, teamRepository, userRepository)
+
+	srv := http.New(cfg, teamService, userService, prService)
+	err = srv.Run()
+	if err != nil {
+		log.Fatalf("Error server run: %v", err)
+	}
 }

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/romreign/PR-Reviewer-Assignment-Service/internal/api"
 	"github.com/romreign/PR-Reviewer-Assignment-Service/internal/repository"
 )
@@ -15,14 +17,20 @@ func NewTeamService(teamRepository repository.TeamRepository) *TeamService {
 	}
 }
 
-func (s *TeamService) GetTeamByName(teamName string) api.Team {
-	return s.teamRepository.FindTeamByName(teamName)
+func (s *TeamService) GetTeamByName(teamName string) (*api.Team, error) {
+	if !s.teamRepository.ExistTeamByName(teamName) {
+		return nil, fmt.Errorf("team not found")
+	}
+	team := s.teamRepository.FindTeamByName(teamName)
+	if team.TeamName == "" {
+		return nil, fmt.Errorf("team not found")
+	}
+	return &team, nil
 }
 
-func (s *TeamService) AddTeam(teamName string) *api.Team {
-	flag := s.teamRepository.ExistTeamByName(teamName)
-	if flag {
-		return nil
+func (s *TeamService) AddTeam(team *api.Team) error {
+	if s.teamRepository.ExistTeamByName(team.TeamName) {
+		return fmt.Errorf("team already exists")
 	}
-	return nil ////
+	return s.teamRepository.CreateTeam(*team)
 }

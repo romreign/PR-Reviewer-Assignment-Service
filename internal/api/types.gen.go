@@ -143,3 +143,32 @@ type PostTeamAddJSONRequestBody = Team
 
 // PostUsersSetIsActiveJSONRequestBody defines body for PostUsersSetIsActive for application/json ContentType.
 type PostUsersSetIsActiveJSONRequestBody PostUsersSetIsActiveJSONBody
+
+// Statistics defines model for Statistics response
+type Statistics struct {
+	TotalAssignments int            `json:"total_assignments"`
+	ByUser           map[string]int `json:"by_user"`
+	ByStatus         struct {
+		Open   int `json:"open"`
+		Merged int `json:"merged"`
+	} `json:"by_status"`
+}
+
+// BatchDeactivateRequest defines body for batch deactivation
+type BatchDeactivateRequest struct {
+	TeamName string   `json:"team_name"`
+	UserIds  []string `json:"user_ids"`
+}
+
+// BatchDeactivateResponse defines response for batch deactivation
+type BatchDeactivateResponse struct {
+	DeactivatedCount int `json:"deactivated_count"`
+	ReassignedCount  int `json:"reassigned_count"`
+	Errors           []struct {
+		UserID string `json:"user_id"`
+		Error  string `json:"error"`
+	} `json:"errors"`
+}
+
+// PostUsersDeactivateBatchJSONRequestBody defines body for batch deactivation endpoint
+type PostUsersDeactivateBatchJSONRequestBody = BatchDeactivateRequest

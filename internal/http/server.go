@@ -4,9 +4,11 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/romreign/PR-Reviewer-Assignment-Service/internal/api"
 	"github.com/romreign/PR-Reviewer-Assignment-Service/internal/config"
 	"github.com/romreign/PR-Reviewer-Assignment-Service/internal/http/handler"
 	"github.com/romreign/PR-Reviewer-Assignment-Service/internal/service"
@@ -25,29 +27,43 @@ type Server struct {
 	Handler *handler.ServerHandler
 }
 
-func New(config *config.Config, teamService *service.TeamService) *Server {
+func New(config *config.Config, teamService *service.TeamService, userService *service.UserService, prService *service.PullRequestService) *Server {
 	return &Server{
 		Config:  config,
 		Router:  chi.NewRouter(),
-		Logger:  setupLogger(config.Env),
-		Handler: handler.NewServerHandler(teamService),
+		Logger:  setupLogger(config.Server.Env),
+		Handler: handler.NewServerHandler(teamService, userService, prService),
 	}
 }
 
 func (s *Server) Run() error {
 	s.configureRouter()
-	return http.ListenAndServe(s.Config.Server.Port, s.Router)
+	srv := &http.Server{
+		Addr:         s.Config.Server.Port,
+		Handler:      s.Router,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+	return srv.ListenAndServe()
 }
 
 func (s *Server) configureRouter() {
 	s.Router.Use(middleware.DefaultLogger)
-	s.Router.Get("/users/getReview", s.Handler.GetTeamGet)
-	s.Router.Get("/team/get", s.Handler.GetTeamGet)
-	s.Router.Post("/team/add", s.Handler.PostTeamAdd)
-	s.Router.Post("/users/setIsActive", s.Handler.PostUsersSetIsActive)
-	s.Router.Post("/pullRequest/create", s.Handler.PostPullRequestCreate)
-	s.Router.Post("/pullRequest/merge", s.Handler.PostPullRequestMerge)
-	s.Router.Post("/pullRequest/reassign", s.Handler.PostPullRequestReassign)
+
+	wrapper := &api.ServerInterfaceWrapper{
+		Handler: s.Handler,
+	}
+
+	s.Router.Post("/team/add", wrapper.PostTeamAdd)
+	s.Router.Get("/team/get", wrapper.GetTeamGet)
+	s.Router.Post("/users/setIsActive", wrapper.PostUsersSetIsActive)
+	s.Router.Get("/users/getReview", wrapper.GetUsersGetReview)
+	s.Router.Post("/pullRequest/create", wrapper.PostPullRequestCreate)
+	s.Router.Post("/pullRequest/merge", wrapper.PostPullRequestMerge)
+	s.Router.Post("/pullRequest/reassign", wrapper.PostPullRequestReassign)
+	s.Router.Get("/stats", s.Handler.GetStats)
+	s.Router.Post("/users/deactivateBatch", s.Handler.PostUsersDeactivateBatch)
 }
 
 func setupLogger(env string) *slog.Logger {

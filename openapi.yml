@@ -49,6 +49,54 @@ components:
         error:
           code: NOT_FOUND
           message: resource not found
+    
+    Statistics:
+      type: object
+      required: [total_assignments, by_user, by_status]
+      properties:
+        total_assignments:
+          type: integer
+        by_user:
+          type: object
+          additionalProperties:
+            type: integer
+          description: "Количество назначений по пользователям"
+        by_status:
+          type: object
+          properties:
+            open:
+              type: integer
+            merged:
+              type: integer
+    
+    BatchDeactivateRequest:
+      type: object
+      required: [team_name, user_ids]
+      properties:
+        team_name:
+          type: string
+        user_ids:
+          type: array
+          items:
+            type: string
+    
+    BatchDeactivateResponse:
+      type: object
+      required: [deactivated_count, reassigned_count, errors]
+      properties:
+        deactivated_count:
+          type: integer
+        reassigned_count:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+              error:
+                type: string
     TeamMember:
       type: object
       required: [ user_id, username, is_active ]
@@ -419,3 +467,60 @@ paths:
                     pull_request_name: Add search
                     author_id: u1
                     status: OPEN
+
+  /stats:
+    get:
+      tags: [Statistics]
+      summary: Получить статистику назначений
+      responses:
+        '200':
+          description: Статистика назначений
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statistics'
+              example:
+                total_assignments: 42
+                by_user:
+                  u1: 15
+                  u2: 12
+                  u3: 15
+                by_status:
+                  open: 30
+                  merged: 12
+
+  /users/deactivateBatch:
+    post:
+      tags: [Users]
+      summary: Массовая деактивация пользователей команды с переназначением PR
+      description: Деактивирует пользователей и переназначает их открытые PR другим членам команды. Оптимизировано для <100ms на средних объёмах данных.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchDeactivateRequest'
+            example:
+              team_name: backend
+              user_ids: [u2, u3]
+      responses:
+        '200':
+          description: Массовая деактивация выполнена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchDeactivateResponse'
+              example:
+                deactivated_count: 2
+                reassigned_count: 5
+                errors: []
+        '404':
+          description: Команда не найдена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }

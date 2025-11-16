@@ -1,21 +1,25 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"errors"
+
+	"github.com/spf13/viper"
+)
 
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
-	Env      string         `mapstructure:"env"`
 	Database DatabaseConfig `mapstructure:"database"`
 }
 
 type ServerConfig struct {
 	Port string `mapstructure:"port"`
+	Env  string `mapstructure:"env"`
 }
 
 type DatabaseConfig struct {
 	Host     string `mapstructure:"host"`
-	Port     string `mapstructure:"port"`
-	Username string `mapstructure:"username"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"user"`
 	Password string `mapstructure:"password"`
 	DBName   string `mapstructure:"dbname"`
 	SSLMode  string `mapstructure:"sslmode"`
@@ -29,7 +33,10 @@ func Load(path string) (*Config, error) {
 	v.AutomaticEnv()
 
 	if err := v.ReadInConfig(); err != nil {
-		return nil, err
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if !errors.As(err, &configFileNotFoundError) {
+			return nil, err
+		}
 	}
 
 	var cfg Config
